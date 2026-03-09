@@ -43,6 +43,7 @@
 #include <optional>
 #include <frc/apriltag/AprilTagFieldLayout.h>
 #include <frc/apriltag/AprilTagFields.h>
+#include "LimelightHelpers.h"
 
 using namespace rev;
 using namespace frc;

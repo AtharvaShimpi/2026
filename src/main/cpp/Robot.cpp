@@ -13,6 +13,7 @@
 // photon::PhotonTrackedTarget target = result.GetBestTarget();
 double distance1 = 0;
 bool isclose = false;
+frc::Pose3d targetPose = LimelightHelpers::getTargetPose3d_CameraSpace("");
 Robot::Robot()
 {
 }
@@ -56,11 +57,16 @@ void Robot::RobotInit()
   SmartDashboard::SetPersistent("Hood kI");
   SmartDashboard::SetPersistent("Hood kD");
   SmartDashboard::SetPersistent("Hood Active Zone");
+  SmartDashboard::SetPersistent("Flywheel Target");
   SmartDashboard::SetPersistent("HoodProportion");
   SmartDashboard::PutNumber("Hood Target", 60);
+  SmartDashboard::SetPersistent("far");
+  SmartDashboard::SetPersistent("close");
   std::thread vThread([this]
                       { AprilTagThread(); });
   vThread.detach();
+ 
+ 
 }
 
 void Robot::RobotPeriodic()
@@ -79,6 +85,7 @@ void Robot::RobotPeriodic()
   // frc::AprilTagFieldLayout field = frc::AprilTagFieldLayout::LoadField(frc::AprilTagField::kDefaultField);
   // cameratable->GetEntry("targetYaw").GetDouble(0);
   //  frc2::CommandScheduler::GetInstance().Run();
+ 
   for (const auto &result : camera.GetAllUnreadResults())
   {
     if (result.HasTargets())
@@ -98,9 +105,14 @@ void Robot::RobotPeriodic()
   // SmartDashboard::PutNumber("DistanceFromAprilTag", magnitude);
 }
 
-void Robot::DisabledInit() {}
+void Robot::DisabledInit() {
+     hoodMotor.GetEncoder().SetPosition(91.2);
 
-void Robot::DisabledPeriodic() {}
+}
+
+void Robot::DisabledPeriodic() {
+  
+}
 
 void Robot::DisabledExit() {}
 bool isCalibrated = false;
@@ -132,16 +144,17 @@ void Robot::TeleopInit()
 {
 
   hdrive_piston.Set(false);
+
 }
 void Robot::TeleopPeriodic()
 {
 
   //
+  double xDistance = targetPose.X().value();
   compressor.EnableAnalog(units::pressure::pounds_per_square_inch_t(SmartDashboard::GetNumber("Pressure", DEFAULT_PRESSURE)), units::pressure::pounds_per_square_inch_t(SmartDashboard::GetNumber("Pressure", DEFAULT_PRESSURE) + 0.5));
   // double flywheelSpeed = flywheelPID(75,flywheelMotor2.GetVelocity().GetValueAsDouble(),SmartDashboard::GetNumber("kp",0.05),SmartDashboard::GetNumber("kI",0.005),SmartDashboard::GetNumber("kD",0.003),SmartDashboard::GetNumber("Active Zone",300))/100.0;
   double flywheelSpeed = flywheelPID(SmartDashboard::GetNumber("Flywheel Target", 75), flywheelMotor2.GetVelocity().GetValueAsDouble(), SmartDashboard::GetNumber("kP", 0.05), SmartDashboard::GetNumber("kI", 0.005), SmartDashboard::GetNumber("kD", 0.003), SmartDashboard::GetNumber("Active Zone", 300));
   SmartDashboard::PutNumber("Flywheel Set Speed", flywheelSpeed);
-
   if (SmartDashboard::GetBoolean("Flywheel On", true))
   {
     flywheelMotor.Set(flywheelSpeed);
@@ -199,7 +212,7 @@ void Robot::TeleopPeriodic()
   {
     intakeMotor.Set(SmartDashboard::GetNumber("Intake Power", 1));
   }
-  else if (controller.ButtonB.isPressing())//r2
+  else if (controller.ButtonR2.isPressing())
   {
     intakeMotor.Set(-SmartDashboard::GetNumber("Intake Power", 1));
   }
@@ -218,8 +231,8 @@ void Robot::TeleopPeriodic()
   // else
   // {
   //   hoodMotor.Set(0);
-  // }
-  if (controller.ButtonA.isPressing())
+  // })
+  if (controller.ButtonL1.isPressing())
   {
     indexerMotor.Set(1);
     intakeMotor.Set(-SmartDashboard::GetNumber("Intake Power", 1));
@@ -229,7 +242,7 @@ void Robot::TeleopPeriodic()
 
     indexerMotor.StopMotor();
   }
-  if (controller.ButtonL1.hasBeenBumped())
+  if (controller.ButtonL2.hasBeenBumped())
   {
     SmartDashboard::PutBoolean("isHolonomic", !SmartDashboard::GetBoolean("isHolonomic", DEFAULT_IS_HOLONOMIC));
   }
@@ -243,18 +256,21 @@ void Robot::TeleopPeriodic()
     drive.SetDrive(Axis3, Axis2, HDrive);
   }
 
-  if (controller.ButtonY.isPressing())
+  if (controller.ButtonA.isPressing())
   {
     drive.navx.ZeroYaw();
+  }
+  if (controller.ButtonX.isPressing()) {
+    drive.SetPosition(0, 0);
   }
 
   if (isclose)
   {
-    SmartDashboard::PutNumber("Hood Target", SmartDashboard::GetNumber("close", 80));
+    SmartDashboard::PutNumber("Hood Target", SmartDashboard::GetNumber("close", 60));
   }
   else
   {
-    SmartDashboard::PutNumber("Hood Target", SmartDashboard::GetNumber("far", 60));
+    SmartDashboard::PutNumber("Hood Target", SmartDashboard::GetNumber("far", 80));
   }
 
   // Button Bumped for pneumatics

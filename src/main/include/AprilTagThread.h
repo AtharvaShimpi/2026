@@ -5,7 +5,7 @@ void Robot::AprilTagThread()
 {
     while (true)
     {
-       camera.;
+       //camera.;
     }
 }
 

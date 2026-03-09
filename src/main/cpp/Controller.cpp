@@ -1,7 +1,7 @@
 #include "Controller.h"
 
-Controller::Controller(int controllerNum)
-    : ButtonB(controllerNum, 1),
+Controller::Controller(int controllerNum):
+      ButtonB(controllerNum, 1),
       ButtonA(controllerNum, 2),
       ButtonY(controllerNum, 3),
       ButtonX(controllerNum, 4),

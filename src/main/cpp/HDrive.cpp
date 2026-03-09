@@ -112,8 +112,8 @@ void HDrive::UpdatePosition()
     double HPos = (hMotor.GetPosition().GetValueAsDouble() / strafeRatio) * strafeWheelDiameter * M_PI* 360;
     double averageSides = ((RightPos-previousRightPos+LeftPos-previousLeftPos)/2.0);
     double hDrive = HPos-previousHPos;
-    X += (averageSides*cos(navx.GetYaw())+hDrive*sin(navx.GetYaw()))*0.0254;
-    Y += (averageSides*sin(navx.GetYaw())-hDrive*cos(navx.GetYaw()))*0.0254;
+    X += (averageSides*sin(navx.GetYaw()*M_PI/180)+hDrive*cos(navx.GetYaw()*M_PI/180))*.001;
+    Y += (averageSides*cos(navx.GetYaw()*M_PI/180)+hDrive*sin(navx.GetYaw()*M_PI/180))*.001;
     previousLeftPos = LeftPos;
     previousRightPos = RightPos;
     previousHPos = HPos;
