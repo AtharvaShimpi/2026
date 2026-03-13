@@ -19,5 +19,5 @@ double hoodPID(double targetPosition, double currentPosition, double kP, double 
     
     hoodDerivative = error - hoodPrevError;
     hoodPrevError = error;
-    return  error*kP + hoodDerivative*kD;
+    return  error*kP + hoodDerivative*kD + hoodTotalError*kI;
 }

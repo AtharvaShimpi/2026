@@ -15,6 +15,10 @@
 #define HDRIVE_RATIO 12
 #define HDRIVE_WHEEL_DIAMETER 4
 #define DRIVE_DIAMETER 25.25
+
+#define CREATE_PERSISTENT_NUMBER(name,value)  SmartDashboard::PutNumber(name, SmartDashboard::GetNumber(name, value)); SmartDashboard::SetPersistent(name)
+#define CREATE_PERSISTENT_BOOLEAN(name,value) SmartDashboard::PutBoolean(name, SmartDashboard::GetBoolean(name, value)); SmartDashboard::SetPersistent(name)
+
 #pragma once
 #include "Includes.h"   
 #include "Controller.h"

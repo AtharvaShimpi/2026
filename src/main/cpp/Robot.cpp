@@ -33,44 +33,34 @@ void Robot::AprilTagThread()
 
 void Robot::RobotInit()
 {
-  SmartDashboard::SetPersistent("Hood kP");
-  SmartDashboard::PutNumber("Match Time", HAL_GetMatchTime(nullptr));
-  SmartDashboard::PutNumber("Pressure", SmartDashboard::GetNumber("Pressure", DEFAULT_PRESSURE));
   SmartDashboard::PutBoolean("isHolonomic", SmartDashboard::GetNumber("isHolonomic", DEFAULT_IS_HOLONOMIC));
-  SmartDashboard::SetPersistent("Pressure");
-  SmartDashboard::PutNumber("Hood kP", 0.6);
-  SmartDashboard::PutNumber("Hood kI", 0.0);
-  SmartDashboard::PutNumber("Hood kD", 0.0);
-  SmartDashboard::PutNumber("Hood Active Zone", 0.0);
-  SmartDashboard::PutNumber("Hood Angle", 1);
-  SmartDashboard::PutNumber("Intake Power", 1);
-  SmartDashboard::PutNumber("kP", 1.04);
-  SmartDashboard::PutNumber("kI", 0.0098);
-  SmartDashboard::PutNumber("kD", 0.77);
-  SmartDashboard::PutNumber("Active Zone", 0.8);
-  SmartDashboard::PutNumber("Flywheel Target", 75);
   SmartDashboard::PutBoolean("Flywheel On", true);
-  SmartDashboard::PutNumber("HoodProportion", 1);
-  SmartDashboard::PutNumber("close", 80);
-  SmartDashboard::PutNumber("far", 60);
-  SmartDashboard::SetPersistent("Hood kP");
-  SmartDashboard::SetPersistent("Hood kI");
-  SmartDashboard::SetPersistent("Hood kD");
-  SmartDashboard::SetPersistent("Hood Active Zone");
-  SmartDashboard::SetPersistent("Flywheel Target");
-  SmartDashboard::SetPersistent("HoodProportion");
-  SmartDashboard::PutNumber("Hood Target", 60);
-  SmartDashboard::SetPersistent("far");
-  SmartDashboard::SetPersistent("close");
+  CREATE_PERSISTENT_NUMBER("Pressure", DEFAULT_PRESSURE);
+  CREATE_PERSISTENT_NUMBER("Hood kP", 0.6);
+  CREATE_PERSISTENT_NUMBER("Hood kI", 0.0);
+  CREATE_PERSISTENT_NUMBER("Hood kD", 0.0);
+  CREATE_PERSISTENT_NUMBER("Hood Active Zone", 0.0);
+  CREATE_PERSISTENT_NUMBER("Hood Angle", 1);
+  CREATE_PERSISTENT_NUMBER("Intake Power", 1);
+  CREATE_PERSISTENT_NUMBER("kP", 1.04);
+  CREATE_PERSISTENT_NUMBER("kI", 0.0098);
+  CREATE_PERSISTENT_NUMBER("kD", 0.77);
+  CREATE_PERSISTENT_NUMBER("Active Zone", 0.8);
+  CREATE_PERSISTENT_NUMBER("Flywheel Target", 75);
+  CREATE_PERSISTENT_NUMBER("HoodProportion", 1);
+  CREATE_PERSISTENT_NUMBER("close", 80);
+  CREATE_PERSISTENT_NUMBER("far", 80);
+  CREATE_PERSISTENT_NUMBER("Hood Target", 60);
+  CREATE_PERSISTENT_NUMBER("Down Limit", 0.5);
+  CREATE_PERSISTENT_NUMBER("Auton Selection", 0);
   std::thread vThread([this]
                       { AprilTagThread(); });
   vThread.detach();
- 
- 
 }
 
 void Robot::RobotPeriodic()
-{
+{ 
+  SmartDashboard::PutNumber("Match Time", HAL_GetMatchTime(nullptr));
   SmartDashboard::PutNumber("x", drive.X);
   SmartDashboard::PutNumber("y", drive.Y);
   SmartDashboard::PutNumber("Hood Position", hoodMotor.GetEncoder().GetPosition() * 360.0 / 43.75);
@@ -85,7 +75,7 @@ void Robot::RobotPeriodic()
   // frc::AprilTagFieldLayout field = frc::AprilTagFieldLayout::LoadField(frc::AprilTagField::kDefaultField);
   // cameratable->GetEntry("targetYaw").GetDouble(0);
   //  frc2::CommandScheduler::GetInstance().Run();
- 
+
   for (const auto &result : camera.GetAllUnreadResults())
   {
     if (result.HasTargets())
@@ -105,37 +95,51 @@ void Robot::RobotPeriodic()
   // SmartDashboard::PutNumber("DistanceFromAprilTag", magnitude);
 }
 
-void Robot::DisabledInit() {
-     hoodMotor.GetEncoder().SetPosition(91.2);
-
+void Robot::DisabledInit()
+{
 }
 
-void Robot::DisabledPeriodic() {
-  
+void Robot::DisabledPeriodic()
+{
 }
 
 void Robot::DisabledExit() {}
 bool isCalibrated = false;
 ;
+int autonvalue;
 void Robot::AutonomousInit()
 {
   compressor.EnableAnalog(units::pressure::pounds_per_square_inch_t(SmartDashboard::GetNumber("Pressure", DEFAULT_PRESSURE)), units::pressure::pounds_per_square_inch_t(SmartDashboard::GetNumber("Pressure", DEFAULT_PRESSURE) + 0.5));
   intake_piston.Set(true);
   indexerMotor.Set(-0.1);
   isCalibrated = false;
+  autonvalue = SmartDashboard::GetNumber("Auton Selection",0);
 }
 
 void Robot::AutonomousPeriodic()
 {
-  if (isCalibrated == false)
+  switch(autonvalue)
   {
-    hoodMotor.Set(0.1);
-    if (hoodMotor.GetEncoder().GetVelocity() <= 0)
-    {
-      hoodMotor.GetEncoder().SetPosition((91.2 * 43.75) / 360.0);
-      isCalibrated = true;
-    }
+    case 0:
+
+    case 1:
+      double flywheelSpeed = flywheelPID(SmartDashboard::GetNumber("Flywheel Target", 75), flywheelMotor2.GetVelocity().GetValueAsDouble(), SmartDashboard::GetNumber("kP", 0.05), SmartDashboard::GetNumber("kI", 0.005), SmartDashboard::GetNumber("kD", 0.003), SmartDashboard::GetNumber("Active Zone", 300));
+      flywheelMotor.Set(flywheelSpeed);
+      flywheelMotor2.Set(flywheelSpeed);
+      hoodMotor.Set(hoodPID(SmartDashboard::GetNumber("far", 60),hoodMotor.GetEncoder().GetPosition() * (360.0) / 43.75, SmartDashboard::GetNumber("Hood kP", 1.04), SmartDashboard::GetNumber("Hood kI", 0.0098), SmartDashboard::GetNumber("Hood kD", 0.77), SmartDashboard::GetNumber("Hood Active Zone", 0.8)) / 57.0);
+      if (leftMotor.GetVelocity().GetValueAsDouble() > 0 && rightMotor.GetVelocity().GetValueAsDouble() > 0)
+      {
+        leftMotor.Set(0.3);
+        rightMotor.Set(0.3);
+      }
+      else
+      {
+        leftMotor.Set(0.0);
+        rightMotor.Set(0.0);
+        indexerMotor.Set(1.0);
+      }
   }
+
 }
 
 void Robot::AutonomousExit() {}
@@ -144,7 +148,6 @@ void Robot::TeleopInit()
 {
 
   hdrive_piston.Set(false);
-
 }
 void Robot::TeleopPeriodic()
 {
@@ -173,9 +176,9 @@ void Robot::TeleopPeriodic()
   double PID = hoodPID(SmartDashboard::GetNumber("Hood Target", 80) * SmartDashboard::GetNumber("HoodProportion", 0), hoodMotor.GetEncoder().GetPosition() * (360.0) / 43.75, SmartDashboard::GetNumber("Hood kP", 1.04), SmartDashboard::GetNumber("Hood kI", 0.0098), SmartDashboard::GetNumber("Hood kD", 0.77), SmartDashboard::GetNumber("Hood Active Zone", 0.8)) / 57.0;
 
   SmartDashboard::PutNumber("Hood PID", PID);
-  if (PID > 0.1)
+  if (PID > SmartDashboard::GetNumber("Down Limit", 0.5))
   {
-    PID = 0.1;
+    PID = SmartDashboard::GetNumber("Down Limit", 0.5);
   }
   if (isCalibrated == false)
   {
@@ -242,7 +245,7 @@ void Robot::TeleopPeriodic()
 
     indexerMotor.StopMotor();
   }
-  if (controller.ButtonL2.hasBeenBumped())
+  if (controller.ButtonDown.hasBeenBumped())
   {
     SmartDashboard::PutBoolean("isHolonomic", !SmartDashboard::GetBoolean("isHolonomic", DEFAULT_IS_HOLONOMIC));
   }
@@ -260,7 +263,8 @@ void Robot::TeleopPeriodic()
   {
     drive.navx.ZeroYaw();
   }
-  if (controller.ButtonX.isPressing()) {
+  if (controller.ButtonX.isPressing())
+  {
     drive.SetPosition(0, 0);
   }
 
